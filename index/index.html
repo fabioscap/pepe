@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <style>
+            table {
+              font-family: arial, sans-serif;
+              border-collapse: collapse;
+              width: 100%;
+            }
+            td, th {
+              border: 1px solid #dddddd;
+              text-align: left;
+              padding: 8px;
+            }
+            
+            tr:nth-child(even) {
+              background-color: #dddddd;
+            }
+        </style>
+        <title>Pepino</title>
+        <script language="javascript">
+          function fetch_schedule() {
+            var req = new XMLHttpRequest();
+            req.open("GET","schedule",false);
+            req.send();
+            if (request.status == 200) {
+              console.log(request.responseText);
+            }
+          }
+
+		      function add_row(table_id,tm) {
+            var table = document.getElementById(table_id);
+
+            var row_count = table.rows.length;
+            var row = table.insertRow(row_count);
+            var cell1 = row.insertCell(0);
+            var element1 = document.createElement("input");
+            element1.type = "checkbox";
+            element1.name="chkbox[]";
+
+            cell1.appendChild(element1);
+            cell1.innerHTML += document.getElementById(tm).value;
+          }
+
+          function deleteRow(table_id) {
+            try {
+              var table = document.getElementById(table_id);
+              var row_count = table.rows.length;
+
+              for(var i=1; i<row_count; i++) {
+                var row = table.rows[i];
+                var chkbox = row.cells[0].childNodes[0];
+                if(null != chkbox && true == chkbox.checked) {
+                  table.deleteRow(i);
+                  row_count--;
+                  i--;
+                }
+              }
+            }catch(e) {
+              alert(e);
+            }
+          }
+        </script>
+    </head>
+    <body>
+        <table id="schedule">
+            <tr>
+              <th>Attendere...</th>
+            </tr>
+        </table> <br>
+
+        <input type="time" id="tm" name="tn">
+        <!-- to be replaced --> 
+        <button onclick="add_row('schedule','tm')">AGGIUNGI ORARIO!</button>
+        <br><br>
+        <button onclick="deleteRow('schedule')">CANCELLA ORARIO!</button>
+        <p><button>NOW!</button></p>
+
+    </body>
+</html>
