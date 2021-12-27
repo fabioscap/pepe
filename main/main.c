@@ -18,14 +18,11 @@
 // ntp server.
 #define NTP_SERVER_NAME "ntp1.inrim.it"
 
-// handle to the queue
-static QueueHandle_t feed_queue;
 // maximun schedules in a day
 #define MAX_FEED_IN_A_DAY 8
 
 typedef struct queue_element {
-    uint8_t used;
-    uint8_t hour:7;
+    uint8_t hour;
     uint8_t minute;
     time_t activation_time;
 } queue_element_t;
@@ -33,6 +30,9 @@ typedef struct schedule_list {
     queue_element_t list[MAX_FEED_IN_A_DAY];
     uint8_t size;
 } schedule_list_t;
+
+static SemaphoreHandle_t schedule_semaphore;
+static schedule_list_t   schedule_list;
 
 void init_feed_schedule();
 void update_feed_schedule(queue_element_t* fs,uint8_t n);
@@ -127,20 +127,14 @@ void app_main(void) {
     sntp_setservername(0, NTP_SERVER_NAME);
     sntp_init();
 
-    // wait for sntp to sync
-    
-    xTaskCreate(dummyTask,"dummyTask",2048,NULL,5,NULL);
-
-    // create the queue that will hold the schedule.
-    feed_queue = xQueueCreate(MAX_FEED_IN_A_DAY, // queue length
-                              sizeof(queue_element_t));
-
     // wait for sntp to sync.
     sntp_sync_status_t st = sntp_get_sync_status();;
     while(st != SNTP_SYNC_STATUS_COMPLETED) {
         vTaskDelay(250 / portTICK_RATE_MS);
         st = sntp_get_sync_status();
     }
+
+    //xTaskCreate(dummyTask,"dummyTask",2048,NULL,5,NULL);
 
     // start feed schedule.
     init_feed_schedule();
@@ -231,9 +225,20 @@ httpd_handle_t start_webserver(void) {
 }
 
 esp_err_t schedule_handler(httpd_req_t *req) {
+    int p = 0;
     char buff[6*MAX_FEED_IN_A_DAY];
-    for (int i=0; i<fs_dim; ++i) {
-
+    // attempt to take semaphore 
+    if (xSemaphoreTake(schedule_semaphore, (TickType_t) 10) == pdTRUE) {
+        for (int i=0; i< schedule_list.size; ++i) {
+            sprintf(buff+p,"%02u:%02u,",schedule_list.list[i].hour,schedule_list.list[i].minute);
+            p += 6;
+        }
+        buff[--p] = '\0';
+        xSemaphoreGive(schedule_semaphore);
+        httpd_resp_send(req, buff, HTTPD_RESP_USE_STRLEN);
+    }
+    else {
+        // failure to get semaphore.
     }
     return ESP_OK;
 }
@@ -246,54 +251,26 @@ esp_err_t get_handler(httpd_req_t *req)
     return ESP_OK;
 }
 
-
-void schedule_task(void* params) {
-    time_t now;
-    struct tm now_human; // time in human format.
-
-    while(1) {
-        // get current time.
-        time(&now);
-        localtime_r(&now,&now_human);
-    }
-}
-
 void init_feed_schedule() {
+
     #ifdef FETCH_SCHEDULE_FROM_NVS
     ;
     #endif
-    #ifndef FETCH_SCHEDULE_FROM_NVS
+    #ifndef FETCH_SCHEDULE_FROM_NVS // use a default schedule.
     queue_element_t s0 = {.hour=5,.minute=30};
     queue_element_t s1 = {.hour=22,.minute=40};
-    fs = (queue_element_t*)malloc(2*sizeof(queue_element_t));
-    fs[0] = s0; fs[1] = s1; fs_dim = 2;
-    #endif
-    update_feed_schedule(fs,fs_dim);
-
-
-}
-
-// sorts by the closest in time
-int queue_element_comp(const void* a, const void* b) {
-    queue_element_t* _a = (queue_element_t*)a;
-    queue_element_t* _b = (queue_element_t*)b;
     
-    time_t t_now; 
-    time(&t_now); 
-    /* sort by hour and minute
-    struct tm now_human; // time in human format.
-    localtime_r(&t_now,&now_human);
-    queue_element_t now = {.hour=now_human.tm_hour,.minute=now_human.tm_min};
-    if (_a->hour - now.hour > _b->hour - now.hour) return -1;
-    if (_a->hour - now.hour < _b->hour - now.hour) return 1;
-    if (_a->minute - now.minute > _b->minute - now.minute) return -1;
-    if (_a->minute - now.minute < _b->minute - now.minute) return 1;
-    return 0;
-    */
-    // sort by activation time
-    if (_a->activation_time > _b->activation_time) return -1;
-    if (_a->activation_time < _b->activation_time) return 1;
-    return 0;
+    schedule_list.list[0] = s0;
+    schedule_list.list[1] = s1;
+    schedule_list.size = 2;
+
+    #endif
+    // semaphore for overwriting schedule.
+    schedule_semaphore = xSemaphoreCreateMutex();
+    //update_feed_schedule();
+    
+    // start feed routine.
+
 }
 
 void print_feed_schedule(queue_element_t* fs, uint8_t n) {
@@ -309,46 +286,4 @@ void print_feed_schedule(queue_element_t* fs, uint8_t n) {
     buff[++p] = 0;
     printf(buff);
 
-}
-
-void update_feed_schedule(queue_element_t* fs,uint8_t n) {
-
-    // clear previous feed_queue
-    xQueueReset(feed_queue);
-
-    // set activation times for each timestamp.
-    time_t t_now; time(&t_now); // fetch current time.
-    struct tm now_human; localtime_r(&t_now,&now_human); // time in human format.
-
-    // get current clock time in seconds
-    time_t now_timestamp_in_seconds = now_human.tm_sec +
-                                      now_human.tm_min * 60 + 
-                                      now_human.tm_hour * 60 * 60;
-    time_t this_day = t_now - now_timestamp_in_seconds;
-    time_t day_offset = 24*60*60; // a day offset in seconds.
-
-    for (int i=0; i<n; ++i){
-        // two cases:
-        // 1- timestamp is greater than current time -> set it this day.
-        // 2- timestamp is lower than current time -> set it the next day.
-        queue_element_t timestamp = fs[i];
-        time_t feed_timestamp_in_seconds = timestamp.hour*60*60 + timestamp.minute*60;
-
-        if (feed_timestamp_in_seconds > now_timestamp_in_seconds) { 
-            //case 1.
-            timestamp.activation_time = this_day+feed_timestamp_in_seconds;
-        }
-        else {
-            // case 2.
-            timestamp.activation_time = this_day+day_offset+feed_timestamp_in_seconds;
-        }
-    }
-
-    // sort the timestamps.
-    qsort(fs,n,sizeof(queue_element_t),queue_element_comp);
-
-    // send ordered schedule to queue.
-    for (int i=0; i<n; ++i) 
-        xQueueSendToBack(feed_queue,fs+i,portMAX_DELAY);
-    print_feed_schedule(fs,n);
 }
