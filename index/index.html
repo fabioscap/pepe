@@ -21,7 +21,7 @@
         <script language="javascript">
 
           function fetch_schedule() {
-            var title = document.getElementById('schedule').rows[0].innerHTML="Orari:";
+            var title = document.getElementById('schedule').rows[0].innerHTML="<th>Orari</th>";
             var req = new XMLHttpRequest();
             req.open("GET","schedule",false);
             req.send();
@@ -57,7 +57,7 @@
                 i--;
               }
           }
-          
+          /*
           function deleteRow(table_id) {
             try {
               var table = document.getElementById(table_id);
@@ -75,7 +75,7 @@
             }catch(e) {
               alert(e);
             }
-          }
+          }*/
         </script>
     </head>
     <body onload="fetch_schedule()">
