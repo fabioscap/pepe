@@ -9,14 +9,14 @@ schedule_list_handler_t init_feed_schedule() {
     #ifndef FETCH_SCHEDULE_FROM_NVS // use a default schedule.
     queue_element_t s0 = {.hour=5,.minute=30};
     queue_element_t s1 = {.hour=22,.minute=40};
-    schedule_list_handler_t schedule_handler = (schedule_list_handler_t)malloc(sizeof(schedule_list_t));
+    schedule_handler = (schedule_list_handler_t)malloc(sizeof(schedule_list_t));
     schedule_handler->list[0] = s0;
     schedule_handler->list[1] = s1;
     schedule_handler->size = 2;
 
     #endif
     // semaphore for overwriting schedule.
-    schedule_handler->schedule_semaphore = xSemaphoreCreateMutex();
+    schedule_handler->smph = xSemaphoreCreateMutex();
     //update_feed_schedule();
     
     // start feed routine.

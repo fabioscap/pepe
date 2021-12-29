@@ -1,53 +1,24 @@
 #include <stdio.h>
-
+#include "freertos/FreeRTOS.h"
 
 #include <nvs.h>
 #include <nvs_flash.h>
 
 #include <time.h> 
 
-
 #include "feed_schedule.h"
 #include "wifi_setup.h"
 #include "my_http_server.h"
-
-schedule_list_handler_t init_feed_schedule();
-void update_feed_schedule(queue_element_t* fs,uint8_t n);
-void print_feed_schedule(queue_element_t* fs, uint8_t n);
+#include "drive_servo.h"
+#include "esp_log.h"
+#include <freertos/semphr.h>
 
 // fetch ssid and password from flash memory.
 void get_ssid_pwd(char** _ssid, char** _pwd);
 
 void dummyTask(void* params);
-/*
-esp_err_t schedule_handler(httpd_req_t *req) {
-    int p = 0;
-    char buff[6*MAX_FEED_IN_A_DAY];
-    // attempt to take semaphore 
-    if (xSemaphoreTake(schedule_semaphore, (TickType_t) 10) == pdTRUE) {
-        for (int i=0; i< schedule_list.size; ++i) {
-            sprintf(buff+p,"%02u:%02u,",schedule_list.list[i].hour,schedule_list.list[i].minute);
-            p += 6;
-        }
-        buff[--p] = '\0';
-        xSemaphoreGive(schedule_semaphore);
-        httpd_resp_send(req, buff, HTTPD_RESP_USE_STRLEN);
-        // opt: wake up feed task.
-    }
-    else {
-        // failure to get semaphore.
-    }
-    return ESP_OK;
-}
 
-esp_err_t get_handler(httpd_req_t *req)
-{   
-    // fetch html page
-    extern const uint8_t index_html[] asm("index_html");
-    httpd_resp_send(req, (char*)index_html, HTTPD_RESP_USE_STRLEN);
-    return ESP_OK;
-}
-*/
+
 void app_main(void) {
     // init flash memory.
     ESP_ERROR_CHECK(nvs_flash_init());
@@ -59,32 +30,16 @@ void app_main(void) {
     wifi_setup(ssid,pwd);
 
     //xTaskCreate(dummyTask,"dummyTask",2048,NULL,5,NULL);
+    // start servo PWM library
+    my_servo_init();
 
     // start feed schedule.
-    schedule_list_handler_t schedule_handler = init_feed_schedule();
+    schedule_handler = init_feed_schedule();
     
     // Now I can create an http server.
     httpd_handle_t server = start_webserver(schedule_handler);
-
-    /*
-    httpd_register_uri_handler(server, &get_index);
-    httpd_register_uri_handler(server, &get_schedule);
-            httpd_uri_t get_index = {
-        .uri = "/",
-        .method = HTTP_GET,
-        .handler = get_handler,
-        .user_ctx = NULL,
-    };
-
-    httpd_uri_t get_schedule = {
-        .uri = "/schedule",
-        .method = HTTP_GET,
-        .handler = schedule_handler,
-        .user_ctx = NULL,
-    };
-    */
+    
 }
-
 
 void get_ssid_pwd(char** _ssid, char** _pwd) {
     

@@ -76,9 +76,16 @@
               alert(e);
             }
           }*/
+          function test_pwm(pwm) {
+            var req = new XMLHttpRequest();
+            req.open("GET","pwm",false);
+            req.setRequestHeader("value",pwm);
+            req.send();
+          }
         </script>
     </head>
     <body onload="fetch_schedule()">
+      <body>
         <table id="schedule">
             <tr>
               <th>Attendere...</th>
@@ -91,6 +98,9 @@
         <br><br>
         <button onclick="deleteRow('schedule')">CANCELLA ORARIO!</button>
         <p><button>NOW!</button></p>
-
+    <div>
+      <h>DEBUG</h>
+      <input type="text" id="pwm"/><input type="button" value="sendPWM" onclick="test_pwm(pwm.value)"/>
+    </div>
     </body>
 </html>
