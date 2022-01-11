@@ -6,16 +6,14 @@ void schedule_routine(void* params) {
     time_t t_now; 
     time_t day_offset = 24*60*60; // a day offset in seconds.
     while(1) {
-
+        print_feed_schedule(sch->list,sch->size);
         // attempt to take semaphore
         if (xSemaphoreTake(sch->smph, (TickType_t) 10) == pdTRUE) {
             time(&t_now); // fetch current time.
-            printf("time: %ld\n", t_now);
+
             for (uint8_t i = 0; i<sch->size; ++i) {
                 queue_element_t* el = sch->list + i;
-                printf("actime: %ld\n", el->activation_time);
                 if (t_now > el->activation_time && t_now - el->activation_time < TIME_TOLERANCE_SEC) {
-                    ESP_LOGI("ciao","ciao");
                     sch->cb_function(NULL);
                     el->activation_time +=  day_offset;
                     break;
@@ -81,13 +79,12 @@ schedule_list_handle_t init_feed_schedule(void (*cb_function)(void*)) {
     #ifndef FETCH_SCHEDULE_FROM_NVS // use a default schedule.
     queue_element_t s0 = {.hour=20,.minute=39};
     queue_element_t s1 = {.hour=20,.minute=41};
-    schedule_handler = (schedule_list_handle_t)malloc(sizeof(schedule_list_t));
+    schedule_list_handle_t schedule_handler = (schedule_list_handle_t)malloc(sizeof(schedule_list_t));
     schedule_handler->list[0] = s0;
     schedule_handler->list[1] = s1;
     schedule_handler->size = 2;
     #endif
     set_activation_time(schedule_handler);
-    printf("ACTIME: %ld\n",schedule_handler->list[0].activation_time);
     schedule_handler->cb_function = cb_function;
 
     //update_feed_schedule(schedule_handler);
@@ -113,4 +110,19 @@ void print_feed_schedule(queue_element_t* fs, uint8_t n) {
     buff[++p] = '\n';
     buff[++p] = 0;
     printf(buff);
+}
+
+void update_feed_schedule(schedule_list_handle_t sch, queue_element_t* new, uint8_t size) {
+        // attempt to take semaphore
+        if (xSemaphoreTake(sch->smph, (TickType_t) 100) == pdTRUE) {
+            assert(size<MAX_FEED_IN_A_DAY);
+            sch->size = size;
+            memcpy(sch->list,new,size*sizeof(queue_element_t));
+
+            set_activation_time(sch);
+            xSemaphoreGive(sch->smph);
+        }
+        else {
+            //
+        }
 }

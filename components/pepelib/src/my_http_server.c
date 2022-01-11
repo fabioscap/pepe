@@ -1,7 +1,7 @@
 #include "my_http_server.h"
 #include "drive_servo.h"
 #include <esp_log.h>
-
+/*
 esp_err_t web_pwm_handler(httpd_req_t *req) {
     char*  buf;
     size_t buf_len;
@@ -81,3 +81,4 @@ httpd_handle_t start_webserver(schedule_list_handle_t sh) {
     
     return server;
 }
+*/

@@ -1,9 +1,11 @@
 #pragma once
 
-#include "esp_err.h"
-#include "freertos/FreeRTOS.h"
+#include <esp_err.h>
+#include <freertos/FreeRTOS.h>
 #include <time.h>
-#include "freertos/semphr.h"
+#include <freertos/semphr.h>
+#include <string.h>
+
 // maximun schedules in a day
 #define MAX_FEED_IN_A_DAY 8
 #define TIME_TOLERANCE_SEC 120
@@ -29,6 +31,4 @@ schedule_list_handle_t init_feed_schedule(void (*cb_function)(void*));
 
 void print_feed_schedule(queue_element_t* fs, uint8_t n);
 
-
-// the actual schedule
-schedule_list_handle_t schedule_handler;
+void update_feed_schedule(schedule_list_handle_t sch, queue_element_t* new, uint8_t size);
