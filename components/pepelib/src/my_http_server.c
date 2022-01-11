@@ -47,7 +47,7 @@ esp_err_t get_handler(httpd_req_t *req)
     return ESP_OK;
 }
 
-httpd_handle_t start_webserver(schedule_list_handler_t sh) {
+httpd_handle_t start_webserver(schedule_list_handle_t sh) {
     // default http server configuration.
     httpd_config_t config = HTTPD_DEFAULT_CONFIG();
 

@@ -3,4 +3,4 @@
 #pragma once
 
 // init_feed_schedule must be called before this function
-httpd_handle_t start_webserver(schedule_list_handler_t sh); 
+httpd_handle_t start_webserver(schedule_list_handle_t sh); 

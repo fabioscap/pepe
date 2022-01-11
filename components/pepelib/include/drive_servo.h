@@ -1,18 +1,29 @@
 #pragma once
 
-#ifndef SERVO_GPIO
-#define SERVO_GPIO 4
-#endif
-
-#include "stdint.h" // uint8_t
+#include "stdint.h" // uint16_t
 #include <driver/mcpwm.h>
 #include <freertos/FreeRTOS.h>
 #include <freertos/task.h>
+#include <freertos/queue.h>
+#include <esp_log.h>
 
-void my_servo_init();
-// blocking
-void servo_cw(uint8_t ticks);
-void servo_ccw(uint8_t ticks);
-void servo_pwm(uint8_t pwm, uint8_t ticks);
+#define SERVO_GPIO 4
+#define SERVO_OFF 0 
+#define MAX_MESSAGE_TICKS 10000/portTICK_RATE_MS // 10 seconds max
+#define SERVO_QUEUE_BUFFER_SIZE 10
+#define SERVO_TASK_PRIORITY 11 // 
+#define SERVO_US_MAX 2000
+#define SERVO_US_MIN 1000
+#define SERVO_ROUTINE_SLEEP_TICKS 100/portTICK_RATE_MS
+#define TAG "my_servo"
 
+typedef struct servo_handle {
+    TaskHandle_t task;
+    QueueHandle_t queue;
+} servo_handle;
 
+typedef servo_handle* servo_handle_t;
+
+servo_handle_t my_servo_init();
+void servo_set_duty_us_blocking(uint16_t us, uint16_t ticks);
+void servo_enq_duty_us(servo_handle_t servo,uint16_t _us, uint16_t ticks);

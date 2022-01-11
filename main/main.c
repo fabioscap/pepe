@@ -8,16 +8,20 @@
 
 #include "feed_schedule.h"
 #include "wifi_setup.h"
-#include "my_http_server.h"
+//#include "my_http_server.h"
 #include "drive_servo.h"
 #include "esp_log.h"
 #include <freertos/semphr.h>
 
+static servo_handle_t my_servo;
+static schedule_list_handle_t my_schedule;
+
 // fetch ssid and password from flash memory.
 void get_ssid_pwd(char** _ssid, char** _pwd);
 
-void dummyTask(void* params);
+void schedule_callback(void* params);
 
+void dummyTask(void* params);
 
 void app_main(void) {
     // init flash memory.
@@ -30,15 +34,18 @@ void app_main(void) {
     wifi_setup(ssid,pwd);
 
     //xTaskCreate(dummyTask,"dummyTask",2048,NULL,5,NULL);
-    // start servo PWM library
-    my_servo_init();
+    // start my servo PWM library
+    my_servo = my_servo_init();
 
     // start feed schedule.
-    schedule_handler = init_feed_schedule();
+    my_schedule = init_feed_schedule(schedule_callback);
     
     // Now I can create an http server.
-    httpd_handle_t server = start_webserver(schedule_handler);
-    
+    //httpd_handle_t server = start_webserver(schedule_handler);
+
+    while(1) {
+        vTaskDelay(1000/portTICK_RATE_MS);
+    }
 }
 
 void get_ssid_pwd(char** _ssid, char** _pwd) {
@@ -70,4 +77,8 @@ void dummyTask(void* params) {
         vTaskDelay(1000 / portTICK_RATE_MS);
         time(&t_now); localtime_r(&t_now,&now_human);
     }
+}
+
+void schedule_callback(void* params) {
+    servo_enq_duty_us(my_servo,1600,1000/portTICK_RATE_MS);
 }

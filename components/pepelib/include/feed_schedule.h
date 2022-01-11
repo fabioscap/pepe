@@ -15,15 +15,16 @@ typedef struct queue_element {
 typedef struct schedule_list {
     queue_element_t list[MAX_FEED_IN_A_DAY];
     uint8_t size;
+    //void (*cb_function)(void*);
     SemaphoreHandle_t smph;
 } schedule_list_t;
 
-typedef schedule_list_t* schedule_list_handler_t;
+typedef schedule_list_t* schedule_list_handle_t;
 
-schedule_list_handler_t init_feed_schedule();
+schedule_list_handle_t init_feed_schedule(void (*cb_function)(void*));
 
 void print_feed_schedule(queue_element_t* fs, uint8_t n);
 
 
 // the actual schedule
-schedule_list_handler_t schedule_handler;
+schedule_list_handle_t schedule_handler;
