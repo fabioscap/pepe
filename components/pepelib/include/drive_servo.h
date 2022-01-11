@@ -14,7 +14,7 @@
 #define SERVO_TASK_PRIORITY 11 // 
 #define SERVO_US_MAX 2000
 #define SERVO_US_MIN 1000
-#define SERVO_ROUTINE_SLEEP_TICKS 100/portTICK_RATE_MS
+#define SERVO_ROUTINE_SLEEP_TICKS 1000/portTICK_RATE_MS
 #define TAG "my_servo"
 
 typedef struct servo_handle {

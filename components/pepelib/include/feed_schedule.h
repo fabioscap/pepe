@@ -2,9 +2,13 @@
 
 #include "esp_err.h"
 #include "freertos/FreeRTOS.h"
+#include <time.h>
 #include "freertos/semphr.h"
 // maximun schedules in a day
 #define MAX_FEED_IN_A_DAY 8
+#define TIME_TOLERANCE_SEC 120
+#define SCHEDULE_ROUTINE_SLEEP_TIME 60000/portTICK_RATE_MS
+#define SCHEDULE_TASK_PRIORITY 10
 
 typedef struct queue_element {
     uint8_t hour;
@@ -15,7 +19,7 @@ typedef struct queue_element {
 typedef struct schedule_list {
     queue_element_t list[MAX_FEED_IN_A_DAY];
     uint8_t size;
-    //void (*cb_function)(void*);
+    void (*cb_function)(void*);
     SemaphoreHandle_t smph;
 } schedule_list_t;
 
