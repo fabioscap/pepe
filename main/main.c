@@ -8,10 +8,10 @@
 
 #include "feed_schedule.h"
 #include "wifi_setup.h"
-//#include "my_http_server.h"
+#include "my_http_server.h"
 #include "drive_servo.h"
-#include "esp_log.h"
-#include <freertos/semphr.h>
+
+#include <esp_err.h>
 
 static servo_handle_t my_servo;
 static schedule_list_handle_t my_schedule;
@@ -20,6 +20,9 @@ static schedule_list_handle_t my_schedule;
 void get_ssid_pwd(char** _ssid, char** _pwd);
 
 void schedule_callback(void* params);
+
+esp_err_t web_pwm_handler(httpd_req_t *req);
+esp_err_t send_schedule(httpd_req_t *req);
 
 void dummyTask(void* params);
 
@@ -41,7 +44,20 @@ void app_main(void) {
     my_schedule = init_feed_schedule(schedule_callback);
     
     // Now I can create an http server.
-    //httpd_handle_t server = start_webserver(schedule_handler);
+    httpd_handle_t server = start_webserver(my_schedule);
+    // register all handlers
+    httpd_uri_t turn = {
+        .uri = "/pwm",
+        .method = HTTP_GET,
+        .handler = web_pwm_handler,
+        .user_ctx = NULL,
+    }; httpd_register_uri_handler(server, &turn);
+    httpd_uri_t get_schedule = {
+        .uri = "/schedule",
+        .method = HTTP_GET,
+        .handler = send_schedule,
+        .user_ctx = NULL,
+    }; httpd_register_uri_handler(server, &get_schedule);
 
     while(1) {
         vTaskDelay(1000/portTICK_RATE_MS);
@@ -81,4 +97,40 @@ void dummyTask(void* params) {
 
 void schedule_callback(void* params) {
     servo_enq_duty_us(my_servo,1600,1000/portTICK_RATE_MS);
+}
+esp_err_t web_pwm_handler(httpd_req_t *req) {
+    char*  buf;
+    size_t buf_len;
+    buf_len = httpd_req_get_hdr_value_len(req, "value") + 1;
+    if (buf_len > 1) {
+        buf = malloc(buf_len);
+        if (httpd_req_get_hdr_value_str(req, "value", buf, buf_len) == ESP_OK) {
+            int pwm;
+            sscanf(buf, "%d", &pwm);
+            servo_enq_duty_us(my_servo,pwm,1000/portTICK_RATE_MS);
+        }
+        free(buf);
+    }
+    httpd_resp_send(req, "ok", HTTPD_RESP_USE_STRLEN);
+    return ESP_OK;
+}
+esp_err_t send_schedule(httpd_req_t *req) {
+    int p = 0;
+    char buff[6*MAX_FEED_IN_A_DAY];
+    // attempt to take semaphore 
+    assert(my_schedule != NULL);
+    if (xSemaphoreTake(my_schedule->smph, (TickType_t) 10) == pdTRUE) {
+        for (int i=0; i< my_schedule->size; ++i) {
+            sprintf(buff+p,"%02u:%02u,",my_schedule->list[i].hour,my_schedule->list[i].minute);
+            p += 6;
+        }
+        buff[--p] = '\0';
+        xSemaphoreGive(my_schedule->smph);
+        httpd_resp_send(req, buff, HTTPD_RESP_USE_STRLEN);
+        // opt: wake up feed task.
+    }
+    else {
+        httpd_resp_send(req, "dio,cane", HTTPD_RESP_USE_STRLEN);
+    }
+    return ESP_OK;
 }
