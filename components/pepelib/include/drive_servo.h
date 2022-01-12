@@ -8,7 +8,6 @@
 #include <esp_log.h>
 
 #define SERVO_GPIO 4
-#define SERVO_OFF 0 
 #define MAX_MESSAGE_TICKS 10000/portTICK_RATE_MS // 10 seconds max
 #define SERVO_QUEUE_BUFFER_SIZE 10
 #define SERVO_TASK_PRIORITY 11 // 

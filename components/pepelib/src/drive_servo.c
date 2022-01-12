@@ -1,5 +1,9 @@
 #include <drive_servo.h>
 
+void servo_stop_blocking() {
+    ESP_ERROR_CHECK(mcpwm_set_signal_low(MCPWM_UNIT_0, MCPWM_TIMER_0, MCPWM_OPR_A));
+}
+
 typedef struct servo_queue_message {
     uint16_t us;
     uint16_t ticks;
@@ -18,7 +22,7 @@ void my_servo_routine(void* params) {
             ESP_LOGI(TAG,"new command...");
             ESP_ERROR_CHECK(mcpwm_set_duty_in_us(MCPWM_UNIT_0, MCPWM_TIMER_0, MCPWM_OPR_A, msg.us));
             vTaskDelay(msg.ticks);
-            ESP_ERROR_CHECK(mcpwm_set_duty_in_us(MCPWM_UNIT_0, MCPWM_TIMER_0, MCPWM_OPR_A, SERVO_OFF));
+            servo_stop_blocking();
         }
         else {
             vTaskDelay(SERVO_ROUTINE_SLEEP_TICKS);
