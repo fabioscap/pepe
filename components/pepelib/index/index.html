@@ -16,6 +16,16 @@
             tr:nth-child(even) {
               background-color: #dddddd;
             }
+            label {
+              width:100px;
+              clear:left;
+              text-align:left;
+            }
+
+            input, label {
+              float:left;
+            }
+
         </style>
         <title>Pepino</title>
         <script language="javascript">
@@ -33,56 +43,60 @@
             }
           }
 
-		      function add_row(table_id,tm) {
+		      function add_row(table_id,time_) {
+            // check if time_ is already present 
+
+            //
+
             var table = document.getElementById(table_id);
 
             var row_count = table.rows.length;
             var row = table.insertRow(row_count);
             var cell1 = row.insertCell(0);
+
+
             var element1 = document.createElement("input");
-            element1.type = "checkbox";
-            element1.name="chkbox[]";
+            element1.type = "button";
+            element1.name="button[]";
+            element1.value = "-";
+            element1.id = "button[]";
+            element1.onclick = function(){table.deleteRow(row.rowIndex);};
 
+            var element2 = document.createElement("label");
+            element2.innerHTML = time_;
+            element2.for = element1.id; 
+
+            cell1.appendChild(element2);
             cell1.appendChild(element1);
-            cell1.innerHTML += tm;
+            
           }
-
-          function clear_table(table_id) {
-            var table = document.getElementById(table_id);
-              var row_count = table.rows.length;
-
-              for(var i=1; i<row_count; ++i) {
-                table.deleteRow(i);
-                row_count--;
-                i--;
-              }
-          }
-          /*
-          function deleteRow(table_id) {
-            try {
-              var table = document.getElementById(table_id);
-              var row_count = table.rows.length;
-
-              for(var i=1; i<row_count; ++i) {
-                var row = table.rows[i];
-                var chkbox = row.cells[0].childNodes[0];
-                if(null != chkbox && true == chkbox.checked) {
-                  table.deleteRow(i);
-                  row_count--;
-                  i--;
-                }
-              }
-            }catch(e) {
-              alert(e);
-            }
-          }*/
-          function test_pwm(pwm) {
+          function test_pwm(pwm,us) {
             var req = new XMLHttpRequest();
             req.open("GET","pwm",false);
             req.setRequestHeader("value",pwm);
+            req.setRequestHeader("duration",us);
             req.send();
           }
-        </script>
+          function update_schedule(table_id) {
+            var table = document.getElementById(table_id);
+            var row_count = table.rows.length;
+
+            var new_schedule="";
+            for(var i=1; i<row_count; ++i) {
+              var t_ = table.rows[i].childNodes[0].childNodes[0].innerHTML;
+              new_schedule += t_+","; 
+            }
+            if (row_count -1 >0) {
+              var req = new XMLHttpRequest();
+              req.open("GET","schedule",false);
+              req.setRequestHeader("size",row_count-1);
+              req.setRequestHeader("schedule",new_schedule);
+              req.send();
+            } else {
+              alert("empty schedule");
+            }
+          }
+       </script>
     </head>
     <body onload="fetch_schedule()">
       <body>
@@ -92,15 +106,19 @@
             </tr>
         </table> <br>
 
-        <input type="time" id="tm" name="tn">
-        <!-- to be replaced --> 
-        <button>AGGIUNGI ORARIO!</button>
+        <input type="time" id="tm" name="tm">
+        <button onclick="add_row('schedule',tm.value)">+</button>
         <br><br>
-        <button onclick="deleteRow('schedule')">CANCELLA ORARIO!</button>
+        <button onclick="update_schedule('schedule')" style="background-color: greenyellow;">SALVA</button>
         <p><button>NOW!</button></p>
+    
     <div>
-      <h>DEBUG</h>
-      <input type="text" id="pwm"/><input type="button" value="sendPWM" onclick="test_pwm(pwm.value)"/>
+      DEBUG  <br>
+      <label for="pwm">pwm value: </label>
+      <input type="text" id="pwm"/> <br>
+      <label for="duration">duration:</label>
+      <input type="text" id="duration"/> <br> <br>
+      <input type="button" value="sendPWM" onclick="test_pwm(pwm.value,duration.value)"/>
     </div>
     </body>
 </html>

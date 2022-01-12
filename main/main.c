@@ -103,7 +103,7 @@ esp_err_t web_pwm_handler(httpd_req_t *req) {
     char*  buf;
     size_t buf_len;
     int us, pwm;
-    
+
     buf_len = fmax(httpd_req_get_hdr_value_len(req, "value") + 1,
                   httpd_req_get_hdr_value_len(req, "duration") + 1);
     if (buf_len > 1) {
@@ -124,20 +124,47 @@ esp_err_t web_pwm_handler(httpd_req_t *req) {
 esp_err_t send_schedule(httpd_req_t *req) {
     int p = 0;
     char buff[6*MAX_FEED_IN_A_DAY];
-    // attempt to take semaphore 
-    assert(my_schedule != NULL);
-    if (xSemaphoreTake(my_schedule->smph, (TickType_t) 10) == pdTRUE) {
+    if (httpd_req_get_hdr_value_len(req, "size") == 0) { // send schedule request
         for (int i=0; i< my_schedule->size; ++i) {
             sprintf(buff+p,"%02u:%02u,",my_schedule->list[i].hour,my_schedule->list[i].minute);
             p += 6;
         }
         buff[--p] = '\0';
-        xSemaphoreGive(my_schedule->smph);
         httpd_resp_send(req, buff, HTTPD_RESP_USE_STRLEN);
+    } else { // update schedule request
+        char*  buf;
+        size_t buf_len;
+        int new_size;
+
+        const char delim[] = ",";
+        char* token;
+
+        buf_len = fmax(httpd_req_get_hdr_value_len(req, "size") + 1,
+                    httpd_req_get_hdr_value_len(req, "schedule") + 1);
+        if (buf_len > 1) {
+            buf = malloc(buf_len);
+            if (httpd_req_get_hdr_value_str(req, "size", buf, buf_len) == ESP_OK) {
+                sscanf(buf, "%d", &new_size);
+                assert(new_size>0);
+            }
+            if (httpd_req_get_hdr_value_str(req, "schedule", buf, buf_len) == ESP_OK) {
+                
+                queue_element_t* new_schedule = (queue_element_t*)malloc(new_size*sizeof(queue_element_t));
+                
+                token = strtok(buf,delim);
+                for (int i=0; i<new_size; ++i) {
+                    sscanf(token, "%hhd:%hhd" ,&new_schedule[i].hour,&new_schedule[i].minute);
+                    token = strtok(NULL,delim);
+                }
+                assert(token==NULL);
+                update_feed_schedule(my_schedule,new_schedule,new_size);
+            }
+            free(buf);
+        }
+
+        httpd_resp_send(req, "ok", HTTPD_RESP_USE_STRLEN);
+
         // opt: wake up feed task.
-    }
-    else {
-        httpd_resp_send(req, "dio,cane", HTTPD_RESP_USE_STRLEN);
     }
     return ESP_OK;
 }

@@ -1,5 +1,6 @@
 #include "feed_schedule.h"
-#include "esp_log.h"
+
+const char TAG[] = "schedule";
 
 void schedule_routine(void* params) {
     schedule_list_handle_t sch = params;
@@ -16,7 +17,7 @@ void schedule_routine(void* params) {
                 if (t_now > el->activation_time && t_now - el->activation_time < TIME_TOLERANCE_SEC) {
                     sch->cb_function(NULL);
                     el->activation_time +=  day_offset;
-                    break;
+                    //break;
                 }
             }
             xSemaphoreGive(sch->smph);
@@ -28,17 +29,7 @@ void schedule_routine(void* params) {
     }
     
 }
-/*
-int queue_element_comp(const void* a, const void* b) {
 
-    queue_element_t* _a = (queue_element_t*) a;
-    queue_element_t* _b = (queue_element_t*) b;
-
-    if (_a->activation_time > _b->activation_time) return -1;
-    if (_a->activation_time < _b->activation_time) return 1;
-    return 0;
-}
-*/
 void set_activation_time(schedule_list_handle_t schedule_handler) {
     // set activation times for each timestamp with respect to current time.
     time_t t_now; time(&t_now); // fetch current time.
@@ -67,8 +58,6 @@ void set_activation_time(schedule_list_handle_t schedule_handler) {
             timestamp->activation_time = this_day+day_offset+feed_timestamp_in_seconds;
         }
     }
-    // sort the timestamps.
-    //qsort(schedule_handler->list,schedule_handler->size,sizeof(queue_element_t),queue_element_comp);
 }
 
 schedule_list_handle_t init_feed_schedule(void (*cb_function)(void*)) {
@@ -86,8 +75,6 @@ schedule_list_handle_t init_feed_schedule(void (*cb_function)(void*)) {
     #endif
     set_activation_time(schedule_handler);
     schedule_handler->cb_function = cb_function;
-
-    //update_feed_schedule(schedule_handler);
 
     // semaphore for overwriting schedule.
     schedule_handler->smph = xSemaphoreCreateMutex();
@@ -113,6 +100,7 @@ void print_feed_schedule(queue_element_t* fs, uint8_t n) {
 }
 
 void update_feed_schedule(schedule_list_handle_t sch, queue_element_t* new, uint8_t size) {
+        ESP_LOGI(TAG,"recv request to update schedule");
         // attempt to take semaphore
         if (xSemaphoreTake(sch->smph, (TickType_t) 100) == pdTRUE) {
             assert(size<MAX_FEED_IN_A_DAY);
@@ -123,6 +111,6 @@ void update_feed_schedule(schedule_list_handle_t sch, queue_element_t* new, uint
             xSemaphoreGive(sch->smph);
         }
         else {
-            //
+            ESP_LOGE(TAG,"could not obtain schedule semphr");
         }
 }
