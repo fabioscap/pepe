@@ -4,7 +4,8 @@
 #include <nvs.h>
 #include <nvs_flash.h>
 
-#include <time.h> 
+#include <time.h>
+#include <math.h> 
 
 #include "feed_schedule.h"
 #include "wifi_setup.h"
@@ -101,19 +102,25 @@ void schedule_callback(void* params) {
 esp_err_t web_pwm_handler(httpd_req_t *req) {
     char*  buf;
     size_t buf_len;
-    buf_len = httpd_req_get_hdr_value_len(req, "value") + 1;
+    int us, pwm;
+    
+    buf_len = fmax(httpd_req_get_hdr_value_len(req, "value") + 1,
+                  httpd_req_get_hdr_value_len(req, "duration") + 1);
     if (buf_len > 1) {
         buf = malloc(buf_len);
         if (httpd_req_get_hdr_value_str(req, "value", buf, buf_len) == ESP_OK) {
-            int pwm;
             sscanf(buf, "%d", &pwm);
-            servo_enq_duty_us(my_servo,pwm,1000/portTICK_RATE_MS);
+        }
+        if (httpd_req_get_hdr_value_str(req, "duration", buf, buf_len) == ESP_OK) {
+            sscanf(buf, "%d", &us);
         }
         free(buf);
     }
+    servo_enq_duty_us(my_servo,pwm,us/portTICK_RATE_MS);
     httpd_resp_send(req, "ok", HTTPD_RESP_USE_STRLEN);
     return ESP_OK;
 }
+
 esp_err_t send_schedule(httpd_req_t *req) {
     int p = 0;
     char buff[6*MAX_FEED_IN_A_DAY];
