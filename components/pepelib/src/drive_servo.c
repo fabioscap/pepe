@@ -1,7 +1,7 @@
 #include <drive_servo.h>
 
 void _servo_stop() {
-    ESP_ERROR_CHECK(mcpwm_set_signal_low(MCPWM_UNIT_0, MCPWM_TIMER_0, MCPWM_OPR_A));
+    ESP_ERROR_CHECK(mcpwm_set_duty_in_us(MCPWM_UNIT_0, MCPWM_TIMER_0, MCPWM_OPR_A, SERVO_OFF));
 }
 
 typedef struct servo_queue_message {
@@ -74,13 +74,13 @@ void servo_set_duty_us_blocking(uint16_t us, uint16_t ticks) {
     _servo_stop();
 }
 
-void servo_enq_duty_us(servo_handle_t servo,uint16_t us, uint16_t ticks) {
-    if (us < SERVO_US_MIN || us > SERVO_US_MAX) {
+void servo_enq_duty_us_ms(servo_handle_t servo,uint16_t us, uint16_t ms) {
+    if (us < SERVO_US_MIN || us > SERVO_US_MAX || ms > MAX_PWM_DURATION_MS) {
         ESP_LOGE(TAG,"invalid pwm command...");
         return;
     }
     servo_queue_message_t msg = {
-        .us = us, .ticks = ticks
+        .us = us, .ticks = ms/portTICK_RATE_MS
     };
     xQueueSendToBack(servo->queue,&msg,portMAX_DELAY);
 }

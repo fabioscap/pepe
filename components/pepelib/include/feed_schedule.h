@@ -10,7 +10,7 @@
 // maximun schedules in a day
 #define MAX_FEED_IN_A_DAY 8
 #define TIME_TOLERANCE_SEC 120
-#define SCHEDULE_ROUTINE_SLEEP_TIME 1000/portTICK_RATE_MS
+#define SCHEDULE_ROUTINE_SLEEP_TIME 10000/portTICK_RATE_MS
 #define SCHEDULE_TASK_PRIORITY 10
 
 typedef struct queue_element {

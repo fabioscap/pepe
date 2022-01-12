@@ -97,12 +97,12 @@ void dummyTask(void* params) {
 }
 
 void schedule_callback(void* params) {
-    servo_enq_duty_us(my_servo,1600,1000/portTICK_RATE_MS);
+    servo_enq_duty_us_ms(my_servo,1600,1000);
 }
 esp_err_t web_pwm_handler(httpd_req_t *req) {
     char*  buf;
     size_t buf_len;
-    int us, pwm;
+    int ms, pwm;
 
     buf_len = fmax(httpd_req_get_hdr_value_len(req, "value") + 1,
                   httpd_req_get_hdr_value_len(req, "duration") + 1);
@@ -112,11 +112,11 @@ esp_err_t web_pwm_handler(httpd_req_t *req) {
             sscanf(buf, "%d", &pwm);
         }
         if (httpd_req_get_hdr_value_str(req, "duration", buf, buf_len) == ESP_OK) {
-            sscanf(buf, "%d", &us);
+            sscanf(buf, "%d", &ms);
         }
         free(buf);
     }
-    servo_enq_duty_us(my_servo,pwm,us/portTICK_RATE_MS);
+    servo_enq_duty_us_ms(my_servo,pwm,ms);
     httpd_resp_send(req, "ok", HTTPD_RESP_USE_STRLEN);
     return ESP_OK;
 }
