@@ -1,10 +1,4 @@
-#include <esp_netif.h>
-#include <esp_wifi.h>
-#include "freertos/event_groups.h"
-#include <esp_sntp.h>
-#include <string.h>
-#include <esp_err.h>
-#include <esp_log.h>
+#include "wifi_setup.h"
 
 // ntp server.
 #define NTP_SERVER_NAME "ntp1.inrim.it"
@@ -85,7 +79,9 @@ void wifi_setup (char* ssid, char* pwd) {
                         pdFALSE, // wait for all bits: in my case it does not matter.
                         portMAX_DELAY // wait forever.
                         );
-
+    // set hostname
+    ESP_ERROR_CHECK(mdns_init());
+    mdns_hostname_set(HOSTNAME);
     // at this point wifi connection is OK.
     
     // setup clock sync.
