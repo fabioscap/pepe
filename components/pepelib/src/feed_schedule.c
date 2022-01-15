@@ -66,8 +66,8 @@ schedule_list_handle_t init_feed_schedule(void (*cb_function)(void*)) {
     ;
     #endif
     #ifndef FETCH_SCHEDULE_FROM_NVS // use a default schedule.
-    queue_element_t s0 = {.hour=20,.minute=39};
-    queue_element_t s1 = {.hour=20,.minute=41};
+    queue_element_t s0 = {.hour=5,.minute=30};
+    queue_element_t s1 = {.hour=20,.minute=30};
     schedule_list_handle_t schedule_handler = (schedule_list_handle_t)malloc(sizeof(schedule_list_t));
     schedule_handler->list[0] = s0;
     schedule_handler->list[1] = s1;
