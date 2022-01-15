@@ -8,8 +8,8 @@
 #include <esp_log.h>
 
 #define SERVO_GPIO 4
-#define MAX_PWM_DURATION_MS 10000 // 10 seconds max
-#define SERVO_OFF 1462
+#define MAX_PWM_DURATION_MS 100000 // 100 seconds max
+#define SERVO_OFF 0
 #define SERVO_QUEUE_BUFFER_SIZE 10
 #define SERVO_TASK_PRIORITY 11 // 
 #define SERVO_US_MAX 2000

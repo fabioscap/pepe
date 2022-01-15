@@ -2,6 +2,7 @@
 
 void _servo_stop() {
     ESP_ERROR_CHECK(mcpwm_set_duty_in_us(MCPWM_UNIT_0, MCPWM_TIMER_0, MCPWM_OPR_A, SERVO_OFF));
+    
 }
 
 typedef struct servo_queue_message {
