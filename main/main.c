@@ -17,6 +17,9 @@
 static servo_handle_t my_servo;
 static schedule_list_handle_t my_schedule;
 
+#define FEED_DURATION 1000 // how long should the motor spin (ms)
+#define FEED_SPEED 1700 // duty cycle in ms
+
 // fetch ssid and password from flash memory.
 void get_ssid_pwd(char** _ssid, char** _pwd);
 
@@ -97,7 +100,7 @@ void dummyTask(void* params) {
 }
 
 void schedule_callback(void* params) {
-    servo_enq_duty_us_ms(my_servo,1600,1000);
+    servo_enq_duty_us_ms(my_servo,FEED_SPEED,FEED_DURATION);
 }
 esp_err_t web_pwm_handler(httpd_req_t *req) {
     char*  buf;
